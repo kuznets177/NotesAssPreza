@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Мои заметки</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-accent: #58a6ff;
+            --border: #30363d;
+            --success: #238636;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+            line-height: 1.6; background: var(--bg-primary); color: var(--text-primary);
+            padding: 24px;
+        }
+        .container { max-width: 980px; margin: 0 auto; }
+        h1 { font-size: 2em; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); }
+        h2 { font-size: 1.5em; margin: 32px 0 16px; color: var(--text-accent); }
+        .notes-list { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0; }
+        .note-item {
+            padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .note-item:last-child { border-bottom: none; }
+        .note-title { font-size: 1.2em; font-weight: 500; margin-bottom: 4px; }
+        .note-meta { color: var(--text-secondary); font-size: 0.9em; }
+        .note-link { color: var(--text-accent); text-decoration: none; }
+        .note-link:hover { text-decoration: underline; }
+        .note-actions { white-space: nowrap; }
+        .note-actions a { margin-left: 12px; color: var(--text-secondary); text-decoration: none; font-size: 0.9em; }
+        .note-actions a:hover { color: var(--text-accent); }
+        .new-note-form {
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-top: 24px;
+        }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
+        input[type="text"] {
+            width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border);
+            border-radius: 6px; color: var(--text-primary); font-size: 16px;
+        }
+        textarea {
+            width: 100%; height: 200px; padding: 12px; background: var(--bg-tertiary);
+            border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);
+            font-family: 'Monaco','Menlo','Ubuntu Mono', monospace; font-size: 14px; resize: vertical;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--text-accent); box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1); }
+        .submit-btn {
+            background: var(--success); color: white; border: none; padding: 12px 24px;
+            border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 500;
+        }
+        .submit-btn:hover { background: #2ea043; }
+        .empty-state {
+            text-align: center; padding: 48px 24px; color: var(--text-secondary);
+            border: 2px dashed var(--border); border-radius: 8px; margin: 24px 0;
+        }
+        .markdown-hint {
+            background: var(--bg-tertiary); border-left: 4px solid var(--text-accent);
+            padding: 16px; margin-top: 12px; border-radius: 0 6px 6px 0; font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Мои заметки</h1>
+
+        {% if notes %}
+            <div class="notes-list">
+                {% for note in notes %}
+                    <div class="note-item">
+                        <div>
+                            <a href="{% url 'note_detail' note.pk %}" class="note-link">
+                                <div class="note-title">{{ note.title }}</div>
+                                <div class="note-meta">{{ note.created_at|date:"d.m.Y H:i" }}</div>
+                            </a>
+                        </div>
+                        <div class="note-actions">
+                            <a href="{% url 'note_edit' note.pk %}">✏️ Изменить</a>
+                            <a href="{% url 'note_delete' note.pk %}"
+                               onclick="return confirm('🚨 Удалить «{{ note.title|escape }}» навсегда?');"
+                               style="color: #f85149;">🗑️ Удалить</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>Заметок пока нет</h2>
+                <p>Создайте первую заметку ниже!</p>
+            </div>
+        {% endif %}
+
+        <h2>+ Новая заметка</h2>
+        <div class="new-note-form">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_title">Заголовок:</label>
+                    <input type="text" id="id_title" name="title" placeholder="Например: 'План на завтра'" maxlength="200" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_content">Содержимое (Markdown):</label>
+                    <textarea id="id_content" name="content" placeholder="# Главный заголовок
+## Подзаголовок
+- [ ] Задача 1
+- [ ] Задача 2
+
+**Жирный текст** и _курсив_
+
+\`inline код\`
+
+\`\`\`python
+print('Hello!')
+\`\`\`"></textarea>
+                    <div class="markdown-hint">
+                        Поддерживается Markdown: # заголовки, **жирный**, *курсив*, `код`, списки, таблицы, цитаты
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">✨ Создать заметку</button>
+            </form>
+        </div>
+    </div>
+</head>
+</body>
+</html>

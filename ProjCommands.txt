@@ -1,0 +1,61 @@
+# Correct Venv and update pip!!!
+    python3 -m venv venv --upgrade-deps
+    python -m ensurepip --default-pip --upgrade
+    pip install --upgrade pip==24.2 setuptools wheel
+    pip install --upgrade pip
+    pip install django
+
+# Creating Django project
+    django-admin startproject myobs .
+    python manage.py runserver
+
+Шаг 1: Устанавливаем Markdown (готовый editor)
+    pip install django-mdeditor pillow
+    python manage.py migrate ### ??? fow what that ?
+
+
+Шаг 2: Создаем app notes (Obsidian vault)
+    python manage.py startapp notes
+
+
+Шаг 3. Описать модель заметки (Note)
+from django.db import models
+
+class Note(models.Model):
+    title = models.CharField(max_length=200)       # Заголовок заметки
+    content = models.TextField(blank=True)         # Текст (Markdown)
+    created_at = models.DateTimeField(auto_now_add=True)  # Дата создания
+
+    def __str__(self):
+        return self.title
+
+
+Шаг 4. Создать и применить миграции
+    python manage.py makemigrations notes
+    python manage.py migrate
+
+    - makemigrations  создаёт миграционный файл — инструкцию «создать таблицу Note с такими полями» .
+    -  migrate  реально применяет эту инструкцию к базе и создаёт таблицу.
+
+
+Шаг 5. Зарегистрировать модель в админке
+    from django.contrib import admin
+    from .models import Note
+
+    @admin.register(Note)
+    class NoteAdmin(admin.ModelAdmin):
+        list_display = ['title', 'created_at']
+
+    - python manage.py createsuperuser
+
+
+Шаг 6. Сделать список заметок (публичная страница)
+from django.contrib import admin
+from django.urls import path
+from notes import views as notes_views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('notes/', notes_views.note_list, name='note_list'),
+]
+

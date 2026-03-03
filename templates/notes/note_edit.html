@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Редактировать {{ note.title }}</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-accent: #58a6ff;
+            --border: #30363d;
+            --code-bg: #0d1117;
+            --code-border: #21262d;
+            --checkbox-checked: #238636;
+            --text-strikethrough: #8b949e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+            line-height: 1.6; background: var(--bg-primary); color: var(--text-primary);
+        }
+        .container { max-width: 980px; margin: 0 auto; padding: 24px; }
+        .header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header a { color: var(--text-accent); text-decoration: none; }
+        .header a:hover { text-decoration: underline; }
+
+        .editor-container { display: flex; gap: 20px; height: 70vh; margin-top: 16px; }
+        .editor-panel {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        .editor-panel strong {
+            display: block;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .editor-panel textarea {
+            width: 100%;
+            flex: 1;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+        }
+        .editor-panel textarea:focus {
+            outline: none;
+            border-color: var(--text-accent);
+        }
+        .preview-panel {
+            flex: 1;
+            overflow: auto;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .toolbar {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 16px 0 8px 0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .toolbar button {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .toolbar button:hover {
+            background: var(--border);
+            border-color: var(--text-accent);
+        }
+        .save-btn {
+            background: #238636 !important;
+            border-color: #2ea043 !important;
+            color: white !important;
+            font-weight: 500;
+        }
+        .save-btn:hover {
+            background: #2ea043 !important;
+        }
+
+        /* Стили для Markdown предпросмотра */
+        .markdown-body {
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border);
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        .markdown-body h1 { font-size: 1.8em; }
+        .markdown-body h2 { font-size: 1.5em; }
+        .markdown-body h3 { font-size: 1.3em; }
+        .markdown-body p { margin: 12px 0; }
+        .markdown-body ul, .markdown-body ol {
+            padding-left: 2em;
+            margin: 12px 0;
+        }
+
+        /* Стили для чекбоксов - ИСПРАВЛЕНО */
+        .markdown-body .task-list-item {
+            list-style-type: none;
+            margin-left: -1.5em;
+            cursor: pointer;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .markdown-body .task-list-item:hover {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+        .markdown-body .task-list-item input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--checkbox-checked);
+            margin: 0;
+        }
+        .markdown-body .task-list-item span {
+            transition: all 0.2s;
+        }
+        .markdown-body .task-list-item.checked span {
+            color: var(--text-strikethrough);
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+        .markdown-body ul.contains-task-list {
+            padding-left: 1.5em;
+            list-style: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="{% url 'note_list' %}">← Заметки</a> |
+            <a href="{% url 'note_detail' note.pk %}">👁️ Предпросмотр</a>
+        </div>
+
+        {% if messages %}
+            <div class="messages" style="margin: 16px 0;">
+                {% for message in messages %}
+                    <div style="color: #238636; background: var(--bg-tertiary); padding: 12px; border-radius: 6px; border: 1px solid #238636;">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="title" value="{{ note.title }}">
+
+            <div class="toolbar">
+                <button type="submit" class="save-btn">💾 Сохранить изменения</button>
+                <button type="button" onclick="updatePreview()">🔄 Обновить предпросмотр</button>
+                <span style="color: var(--text-secondary); margin-left: auto;">
+                    ✓ Кликни на чекбокс чтобы зачеркнуть
+                </span>
+            </div>
+
+            <div class="editor-container">
+                <div class="editor-panel">
+                    <strong>Markdown (редактируй здесь)</strong>
+                    <textarea name="content" id="markdown-input" autofocus>{{ note.content }}</textarea>
+                </div>
+                <div class="preview-panel">
+                    <strong style="display: block; margin-bottom: 12px; color: var(--text-secondary);">Предпросмотр</strong>
+                    <div id="markdown-preview" class="markdown-body"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const input = document.getElementById('markdown-input');
+        const preview = document.getElementById('markdown-preview');
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;');
+        }
+
+        function parseMarkdown(text) {
+            // Экранируем HTML
+            text = escapeHtml(text);
+
+            // Заголовки
+            text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                      .replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+            // Форматирование текста
+            text = text.replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>')
+                      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                      .replace(/`(.*?)`/gim, '<code>$1</code>');
+
+            // Разбиваем на строки для обработки списков
+            const lines = text.split('\n');
+            let html = '';
+            let inTaskList = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Проверяем на чекбокс
+                const taskMatch = line.match(/^- \[([ x])\] (.*$)/i);
+                if (taskMatch) {
+                    const checked = taskMatch[1].toLowerCase() === 'x';
+                    const content = taskMatch[2];
+
+                    if (!inTaskList) {
+                        html += '<ul class="contains-task-list">';
+                        inTaskList = true;
+                    }
+
+                    html += `<li class="task-list-item${checked ? ' checked' : ''}" onclick="toggleTask(this)">`;
+                    html += `<input type="checkbox" ${checked ? 'checked' : ''} onclick="event.stopPropagation()">`;
+                    html += `<span>${content}</span>`;
+                    html += '</li>';
+                    continue;
+                }
+
+                // Если были чекбоксы, а теперь другая строка - закрываем список
+                if (inTaskList) {
+                    html += '</ul>';
+                    inTaskList = false;
+                }
+
+                // Обычный текст
+                if (line.trim() === '') {
+                    html += '<br>';
+                } else if (!line.match(/^[-#*>]/)) {
+                    html += `<p>${line}</p>`;
+                }
+            }
+
+            // Закрываем список, если он остался открытым
+            if (inTaskList) {
+                html += '</ul>';
+            }
+
+            return html;
+        }
+
+        function updatePreview() {
+            preview.innerHTML = parseMarkdown(input.value);
+        }
+
+        // Функция для переключения чекбокса
+        window.toggleTask = function(li) {
+            const checkbox = li.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                if (checkbox.checked) {
+                    li.classList.add('checked');
+                } else {
+                    li.classList.remove('checked');
+                }
+            }
+        };
+
+        // Обновляем предпросмотр при вводе
+        input.addEventListener('input', updatePreview);
+
+        // Первоначальное обновление
+        updatePreview();
+    </script>
+</body>
+</html>
