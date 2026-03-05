@@ -13,6 +13,8 @@
             --text-accent: #58a6ff;
             --border: #30363d;
             --success: #238636;
+            --slide-bg: #1a1f2a;
+            --slide-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -20,44 +22,227 @@
             line-height: 1.6; background: var(--bg-primary); color: var(--text-primary);
             padding: 24px;
         }
-        .container { max-width: 980px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
         h1 { font-size: 2em; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); }
         h2 { font-size: 1.5em; margin: 32px 0 16px; color: var(--text-accent); }
-        .notes-list { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0; }
-        .note-item {
-            padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start;
+
+        /* Контейнер для прокрутки */
+        .slides-scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-accent) var(--bg-tertiary);
+            cursor: grab;
+            scroll-behavior: smooth; /* Плавная прокрутка для программного скролла */
         }
-        .note-item:last-child { border-bottom: none; }
-        .note-title { font-size: 1.2em; font-weight: 500; margin-bottom: 4px; }
-        .note-meta { color: var(--text-secondary); font-size: 0.9em; }
-        .note-link { color: var(--text-accent); text-decoration: none; }
-        .note-link:hover { text-decoration: underline; }
-        .note-actions { white-space: nowrap; }
-        .note-actions a { margin-left: 12px; color: var(--text-secondary); text-decoration: none; font-size: 0.9em; }
-        .note-actions a:hover { color: var(--text-accent); }
+
+        .slides-scroll-container:active {
+            cursor: grabbing;
+        }
+
+        /* Стили для скроллбара в Chrome/Safari/Edge */
+        .slides-scroll-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .slides-scroll-container::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+        }
+
+        .slides-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--text-accent);
+            border-radius: 10px;
+        }
+
+        .slides-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #7cc5ff;
+        }
+
+        /* Горизонтальный ряд для слайдов */
+        .slides-row {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            width: max-content;
+            padding: 4px 4px 8px 4px;
+        }
+
+        /* Карточка-слайд с фиксированной шириной */
+        .slide-card {
+            background: var(--slide-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            width: 220px;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .slide-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--slide-shadow);
+            border-color: var(--text-accent);
+        }
+
+        /* Верхняя часть с заголовком */
+        .slide-header {
+            padding: 24px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .slide-card:hover .slide-header {
+            background-color: #2a2f3a; /* Чуть светлее при наведении */
+        }
+
+        .slide-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--text-accent);
+            word-break: break-word;
+            transition: color 0.2s ease;
+        }
+
+        .slide-card:hover .slide-title {
+            color: #7cc5ff; /* Светлее при наведении */
+        }
+
+        /* Нижняя часть с действиями */
+        .slide-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .slide-card:hover .slide-footer {
+            background-color: #2a2f3a;
+        }
+
+        .slide-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .slide-actions a, .slide-delete {
+            text-decoration: none;
+            font-size: 1.1em;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(1);
+        }
+
+        .slide-actions a:hover, .slide-delete:hover {
+            transform: scale(1.1);
+        }
+
+        .slide-actions a {
+            color: var(--text-secondary);
+        }
+
+        .slide-actions a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-accent);
+        }
+
+        .slide-delete {
+            color: #f85149 !important;
+        }
+
+        .slide-delete:hover {
+            background: rgba(248, 81, 73, 0.15) !important;
+            color: #ff7b72 !important;
+        }
+
+        /* Подсказка для прокрутки */
+        .scroll-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0 16px 0;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .scroll-hint span {
+            font-size: 1.2em;
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+        }
+
+        /* Стили для пустого состояния */
+        .empty-state {
+            text-align: center; padding: 48px 24px; color: var(--text-secondary);
+            border: 2px dashed var(--border); border-radius: 8px; margin: 24px 0;
+            width: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+
         .new-note-form {
             background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-top: 24px;
+            animation: fadeIn 0.6s ease;
         }
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
         input[type="text"] {
             width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border);
             border-radius: 6px; color: var(--text-primary); font-size: 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         textarea {
             width: 100%; height: 200px; padding: 12px; background: var(--bg-tertiary);
             border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);
             font-family: 'Monaco','Menlo','Ubuntu Mono', monospace; font-size: 14px; resize: vertical;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         input:focus, textarea:focus { outline: none; border-color: var(--text-accent); box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1); }
         .submit-btn {
             background: var(--success); color: white; border: none; padding: 12px 24px;
             border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            transform: scale(1);
         }
-        .submit-btn:hover { background: #2ea043; }
-        .empty-state {
-            text-align: center; padding: 48px 24px; color: var(--text-secondary);
-            border: 2px dashed var(--border); border-radius: 8px; margin: 24px 0;
+        .submit-btn:hover {
+            background: #2ea043;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
+        }
+        .submit-btn:active {
+            transform: scale(0.98);
         }
         .markdown-hint {
             background: var(--bg-tertiary); border-left: 4px solid var(--text-accent);
@@ -70,23 +255,33 @@
         <h1>📝 Мои заметки</h1>
 
         {% if notes %}
-            <div class="notes-list">
-                {% for note in notes %}
-                    <div class="note-item">
-                        <div>
-                            <a href="{% url 'note_detail' note.pk %}" class="note-link">
-                                <div class="note-title">{{ note.title }}</div>
-                                <div class="note-meta">{{ note.created_at|date:"d.m.Y H:i" }}</div>
+            <!-- Подсказка для прокрутки -->
+            <div class="scroll-hint">
+                <span>⬅️</span> Плавно листайте колёсиком или тащите мышкой <span>➡️</span>
+            </div>
+
+            <!-- Контейнер с горизонтальной прокруткой -->
+            <div class="slides-scroll-container" id="scrollContainer">
+                <div class="slides-row">
+                    {% for note in notes %}
+                        <div class="slide-card">
+                            <a href="{% url 'note_detail' note.pk %}" style="text-decoration: none; color: inherit;">
+                                <div class="slide-header">
+                                    <div class="slide-title">{{ note.title }}</div>
+                                </div>
                             </a>
+                            <div class="slide-footer">
+                                <div class="slide-actions">
+                                    <a href="{% url 'note_edit' note.pk %}" title="Редактировать">✏️</a>
+                                </div>
+                                <a href="{% url 'note_delete' note.pk %}"
+                                   onclick="return confirm('🚨 Удалить «{{ note.title|escape }}» навсегда?');"
+                                   class="slide-delete"
+                                   title="Удалить">🗑️</a>
+                            </div>
                         </div>
-                        <div class="note-actions">
-                            <a href="{% url 'note_edit' note.pk %}">✏️ Изменить</a>
-                            <a href="{% url 'note_delete' note.pk %}"
-                               onclick="return confirm('🚨 Удалить «{{ note.title|escape }}» навсегда?');"
-                               style="color: #f85149;">🗑️ Удалить</a>
-                        </div>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
         {% else %}
             <div class="empty-state">
@@ -112,11 +307,11 @@
 
 **Жирный текст** и _курсив_
 
-\`inline код\`
+`inline код`
 
-\`\`\`python
+```python
 print('Hello!')
-\`\`\`"></textarea>
+```"></textarea>
                     <div class="markdown-hint">
                         Поддерживается Markdown: # заголовки, **жирный**, *курсив*, `код`, списки, таблицы, цитаты
                     </div>
@@ -125,6 +320,160 @@ print('Hello!')
             </form>
         </div>
     </div>
-</head>
+
+    <script>
+        // Супер-плавная горизонтальная прокрутка колёсиком мыши
+        (function() {
+            const container = document.getElementById('scrollContainer');
+            if (!container) return;
+
+            // Настройки анимации
+            const scrollSettings = {
+                smoothness: 0.15,      // Коэффициент плавности (меньше = плавнее)
+                threshold: 0.5,         // Порог для начала анимации
+                minDelta: 0.5,          // Минимальное изменение для анимации
+                wheelSpeed: 1.2         // Скорость прокрутки колесом
+            };
+
+            // Переменные для плавной прокрутки
+            let targetScrollLeft = container.scrollLeft;
+            let currentScrollLeft = container.scrollLeft;
+            let isAnimating = false;
+            let wheelDelta = 0;
+
+            // Функция плавной анимации
+            function smoothScroll() {
+                if (!isAnimating) return;
+
+                // Вычисляем разницу между текущей и целевой позицией
+                const diff = targetScrollLeft - currentScrollLeft;
+
+                // Если разница очень маленькая, просто устанавливаем целевую позицию
+                if (Math.abs(diff) < scrollSettings.minDelta) {
+                    currentScrollLeft = targetScrollLeft;
+                    container.scrollLeft = targetScrollLeft;
+                    isAnimating = false;
+                    return;
+                }
+
+                // Плавно приближаемся к целевой позиции
+                currentScrollLeft += diff * scrollSettings.smoothness;
+                container.scrollLeft = currentScrollLeft;
+
+                // Продолжаем анимацию
+                requestAnimationFrame(smoothScroll);
+            }
+
+            // Обработчик колесика мыши
+            container.addEventListener('wheel', function(e) {
+                e.preventDefault();
+
+                // Получаем направление прокрутки (отрицательное = вверх/влево, положительное = вниз/вправо)
+                const delta = e.deltaY || e.deltaX;
+
+                // Изменяем целевую позицию прокрутки
+                targetScrollLeft += delta * scrollSettings.wheelSpeed;
+
+                // Ограничиваем целевую позицию в пределах допустимых значений
+                const maxScroll = container.scrollWidth - container.clientWidth;
+                targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+
+                // Запускаем анимацию, если она еще не запущена
+                if (!isAnimating) {
+                    isAnimating = true;
+                    currentScrollLeft = container.scrollLeft;
+                    requestAnimationFrame(smoothScroll);
+                }
+            }, { passive: false });
+
+            // Перетаскивание мышкой с плавностью
+            let isDown = false;
+            let startX;
+            let startScrollLeft;
+            let dragTargetScrollLeft = 0;
+            let isDragging = false;
+
+            container.addEventListener('mousedown', (e) => {
+                isDown = true;
+                isDragging = false;
+                container.style.cursor = 'grabbing';
+                startX = e.pageX - container.offsetLeft;
+                startScrollLeft = container.scrollLeft;
+                dragTargetScrollLeft = container.scrollLeft;
+
+                // Останавливаем текущую анимацию при начале перетаскивания
+                isAnimating = false;
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+
+                const x = e.pageX - container.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                dragTargetScrollLeft = startScrollLeft - walk;
+
+                // Ограничиваем целевую позицию
+                const maxScroll = container.scrollWidth - container.clientWidth;
+                dragTargetScrollLeft = Math.max(0, Math.min(dragTargetScrollLeft, maxScroll));
+
+                // Мгновенно обновляем прокрутку для отзывчивости при перетаскивании
+                container.scrollLeft = dragTargetScrollLeft;
+
+                // Обновляем переменные для плавной прокрутки
+                targetScrollLeft = dragTargetScrollLeft;
+                currentScrollLeft = dragTargetScrollLeft;
+
+                isDragging = true;
+            });
+
+            // Обработчики окончания перетаскивания
+            ['mouseup', 'mouseleave'].forEach(event => {
+                container.addEventListener(event, () => {
+                    if (isDown) {
+                        isDown = false;
+                        container.style.cursor = 'grab';
+
+                        // Если это было перетаскивание, оставляем прокрутку где есть
+                        if (isDragging) {
+                            targetScrollLeft = container.scrollLeft;
+                            currentScrollLeft = container.scrollLeft;
+                        }
+                        isDragging = false;
+                    }
+                });
+            });
+
+            // Обновляем targetScrollLeft при изменении размера окна
+            window.addEventListener('resize', () => {
+                const maxScroll = container.scrollWidth - container.clientWidth;
+                targetScrollLeft = Math.min(targetScrollLeft, maxScroll);
+                container.scrollLeft = targetScrollLeft;
+                currentScrollLeft = targetScrollLeft;
+            });
+
+            // Опционально: добавляем плавный скролл кнопками (влево/вправо)
+            container.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    const delta = e.key === 'ArrowLeft' ? -100 : 100;
+                    targetScrollLeft += delta;
+
+                    const maxScroll = container.scrollWidth - container.clientWidth;
+                    targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+
+                    if (!isAnimating) {
+                        isAnimating = true;
+                        currentScrollLeft = container.scrollLeft;
+                        requestAnimationFrame(smoothScroll);
+                    }
+                }
+            });
+
+            // Фокус на контейнер для клавиатурной навигации
+            container.setAttribute('tabindex', '0');
+            container.style.outline = 'none';
+        })();
+    </script>
 </body>
 </html>
