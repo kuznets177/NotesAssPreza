@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Мои заметки</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -15,38 +16,525 @@
             --success: #238636;
             --slide-bg: #1a1f2a;
             --slide-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            --modal-overlay: rgba(0, 0, 0, 0.85);
+            --modal-bg: #1e242c;
+            --filter-bg: #1a1f2a;
+            --tag-bg: #2d333b;
+            --tag-hover: #3d444d;
+            --tag-active: #58a6ff;
+            --calendar-bg: #1a1f2a;
+            --calendar-border: #30363d;
+            --calendar-day-hover: #2d333b;
+            --calendar-day-active: #58a6ff;
+            --counter-bg: #58a6ff;
+            --nav-btn-bg: #21262d;
+            --nav-btn-hover: #58a6ff;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
             line-height: 1.6; background: var(--bg-primary); color: var(--text-primary);
-            padding: 24px;
+            padding: 16px;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        h1 { font-size: 2em; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); }
-        h2 { font-size: 1.5em; margin: 32px 0 16px; color: var(--text-accent); }
+        .container { max-width: 1200px; margin: 0 auto; position: relative; }
+
+        /* Заголовок с иконкой меню */
+        .header-with-menu {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0;
+        }
+
+        /* Счётчик заметок */
+        .notes-counter {
+            background: var(--counter-bg);
+            color: white;
+            font-size: 0.9em;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 32px;
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+        }
+
+        /* Кнопка бургер-меню */
+        .menu-button {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+            position: relative;
+        }
+
+        .menu-button:hover {
+            background: var(--text-accent);
+            border-color: var(--text-accent);
+        }
+
+        .menu-button:hover .menu-line {
+            background: white;
+        }
+
+        .menu-line {
+            width: 24px;
+            height: 3px;
+            background: var(--text-secondary);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-button.active {
+            background: var(--text-accent);
+        }
+
+        .menu-button.active .menu-line:nth-child(1) {
+            transform: rotate(45deg) translate(8px, 8px);
+        }
+
+        .menu-button.active .menu-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-button.active .menu-line:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        h2 { font-size: 1.5em; margin: 24px 0 16px; color: var(--text-accent); }
+        h3 { font-size: 1.2em; margin: 0 0 12px 0; color: var(--text-primary); }
+
+        /* ===== ВЫПАДАЮЩАЯ ПАНЕЛЬ ФИЛЬТРОВ ===== */
+        .filter-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            background: var(--filter-bg);
+            border-left: 1px solid var(--border);
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .filter-panel.open {
+            right: 0;
+        }
+
+        .filter-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filter-panel-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-accent);
+            font-size: 1.4em;
+            margin: 0;
+        }
+
+        .close-panel {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-panel:hover {
+            background: var(--text-accent);
+            color: white;
+        }
+
+        /* Оверлей при открытой панели */
+        .panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .panel-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Поиск (без лупы) */
+        .search-box {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        }
+
+        /* Теги */
+        .tags-container {
+            margin-bottom: 24px;
+        }
+
+        .tags-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 0.95em;
+        }
+
+        .tags-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-item {
+            background: var(--tag-bg);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+
+        .tag-item:hover {
+            background: var(--tag-hover);
+            transform: translateY(-2px);
+        }
+
+        .tag-item.active {
+            background: var(--tag-active);
+            color: white;
+            border-color: var(--tag-active);
+        }
+
+        .tag-item.active .tag-count {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .tag-count {
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+
+        /* Календарь */
+        .calendar-container {
+            background: var(--calendar-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .calendar-month {
+            font-weight: 600;
+            color: var(--text-accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .calendar-nav-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .calendar-nav-btn:hover {
+            background: var(--text-accent);
+            color: white;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
+            color: var(--text-primary);
+        }
+
+        .calendar-day:hover {
+            background: var(--calendar-day-hover);
+            transform: scale(1.05);
+        }
+
+        .calendar-day.active {
+            background: var(--calendar-day-active);
+            color: white;
+            border-color: var(--calendar-day-active);
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            border-color: transparent;
+            cursor: default;
+        }
+
+        .calendar-day.empty:hover {
+            background: transparent;
+            transform: none;
+        }
+
+        .calendar-day.has-notes {
+            font-weight: 600;
+            color: var(--text-accent);
+            position: relative;
+        }
+
+        .calendar-day.has-notes::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: var(--text-accent);
+            border-radius: 50%;
+        }
+
+        .calendar-footer {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .clear-filter-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
+        }
+
+        .clear-filter-btn:hover {
+            background: var(--text-accent);
+            color: white;
+        }
+
+        /* Активные фильтры */
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .filter-badge {
+            background: var(--tag-active);
+            border-radius: 30px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-badge-remove {
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-badge-remove:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* Контейнер для слайдов с кнопками навигации */
+        .slides-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-top: 16px;
+            margin-bottom: 16px;
+        }
+
+        /* Кнопки навигации */
+        .nav-button {
+            width: 48px;
+            height: 48px;
+            background: var(--nav-btn-bg);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 24px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-button:hover {
+            background: var(--nav-btn-hover);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .nav-button:active {
+            transform: scale(0.95);
+        }
+
+        .nav-button.left {
+            margin-right: 12px;
+        }
+
+        .nav-button.right {
+            margin-left: 12px;
+        }
 
         /* Контейнер для прокрутки */
         .slides-scroll-container {
-            width: 100%;
+            flex: 1;
             overflow-x: auto;
             overflow-y: hidden;
-            margin-top: 20px;
-            margin-bottom: 20px;
             padding-bottom: 16px;
             scrollbar-width: thin;
             scrollbar-color: var(--text-accent) var(--bg-tertiary);
             cursor: grab;
-            scroll-behavior: smooth; /* Плавная прокрутка для программного скролла */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
 
         .slides-scroll-container:active {
             cursor: grabbing;
         }
 
-        /* Стили для скроллбара в Chrome/Safari/Edge */
+        /* Стили для скроллбара */
         .slides-scroll-container::-webkit-scrollbar {
-            height: 8px;
+            height: 6px;
         }
 
         .slides-scroll-container::-webkit-scrollbar-track {
@@ -67,131 +555,153 @@
         .slides-row {
             display: flex;
             flex-direction: row;
-            gap: 20px;
+            gap: 16px;
             width: max-content;
-            padding: 4px 4px 8px 4px;
+            padding: 4px 4px 12px 4px;
         }
 
-        /* Карточка-слайд с фиксированной шириной */
+        /* Карточка-слайд */
         .slide-card {
             background: var(--slide-bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 16px;
             transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.3s ease;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            width: 220px;
-            min-width: 220px;
+            width: 200px;
+            min-width: 200px;
             display: flex;
             flex-direction: column;
             cursor: pointer;
             user-select: none;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
         }
 
-        .slide-card:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--slide-shadow);
-            border-color: var(--text-accent);
+        .slide-card.hidden {
+            display: none;
+        }
+
+        .slide-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--text-accent), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .slide-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .slide-card:active {
+            transform: scale(0.97);
+            transition: transform 0.1s;
         }
 
         /* Верхняя часть с заголовком */
         .slide-header {
-            padding: 24px 16px;
+            padding: 20px 12px;
             border-bottom: 1px solid var(--border);
             background: var(--bg-tertiary);
-            border-radius: 12px 12px 0 0;
+            border-radius: 16px 16px 0 0;
             text-align: center;
-            min-height: 120px;
+            min-height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s ease;
         }
 
-        .slide-card:hover .slide-header {
-            background-color: #2a2f3a; /* Чуть светлее при наведении */
-        }
-
         .slide-title {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: 600;
             color: var(--text-accent);
             word-break: break-word;
             transition: color 0.2s ease;
         }
 
-        .slide-card:hover .slide-title {
-            color: #7cc5ff; /* Светлее при наведении */
+        /* Теги на карточке */
+        .slide-tags {
+            padding: 8px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .slide-tag {
+            background: var(--tag-bg);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.7em;
+            color: var(--text-secondary);
         }
 
         /* Нижняя часть с действиями */
         .slide-footer {
-            padding: 12px 16px;
+            padding: 10px 12px;
             border-top: 1px solid var(--border);
             background: var(--bg-tertiary);
-            border-radius: 0 0 12px 12px;
+            border-radius: 0 0 16px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             transition: background-color 0.2s ease;
         }
 
-        .slide-card:hover .slide-footer {
-            background-color: #2a2f3a;
-        }
-
         .slide-actions {
             display: flex;
-            gap: 8px;
+            gap: 12px;
         }
 
         .slide-actions a, .slide-delete {
             text-decoration: none;
-            font-size: 1.1em;
-            padding: 6px 8px;
-            border-radius: 6px;
+            font-size: 1.2em;
+            padding: 8px;
+            border-radius: 8px;
             transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transform: scale(1);
+            position: relative;
+            z-index: 10;
+            min-width: 44px;
+            min-height: 44px;
         }
 
-        .slide-actions a:hover, .slide-delete:hover {
-            transform: scale(1.1);
+        .slide-actions a:active, .slide-delete:active {
+            transform: scale(0.9);
+            background: var(--bg-secondary);
         }
 
         .slide-actions a {
             color: var(--text-secondary);
         }
 
-        .slide-actions a:hover {
-            background: var(--bg-secondary);
+        .slide-actions a:active {
             color: var(--text-accent);
         }
 
         .slide-delete {
             color: #f85149 !important;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            line-height: 1;
         }
 
-        .slide-delete:hover {
-            background: rgba(248, 81, 73, 0.15) !important;
-            color: #ff7b72 !important;
+        .slide-delete:active {
+            background: rgba(248, 81, 73, 0.2) !important;
         }
 
-        /* Подсказка для прокрутки */
+        /* Подсказка для прокрутки (скрыта, так как теперь есть кнопки) */
         .scroll-hint {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 8px 0 16px 0;
-            color: var(--text-secondary);
-            font-size: 0.9em;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .scroll-hint span {
-            font-size: 1.2em;
-            animation: bounce 2s infinite ease-in-out;
+            display: none;
         }
 
         @keyframes fadeIn {
@@ -206,82 +716,581 @@
 
         /* Стили для пустого состояния */
         .empty-state {
-            text-align: center; padding: 48px 24px; color: var(--text-secondary);
-            border: 2px dashed var(--border); border-radius: 8px; margin: 24px 0;
+            text-align: center; padding: 40px 20px; color: var(--text-secondary);
+            border: 2px dashed var(--border); border-radius: 12px; margin: 20px 0;
             width: 100%;
             animation: fadeIn 0.5s ease;
         }
 
+        .empty-filters {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-filters button {
+            background: var(--text-accent);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        /* Форма новой заметки */
         .new-note-form {
-            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-top: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
             animation: fadeIn 0.6s ease;
         }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
-        input[type="text"] {
-            width: 100%; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border);
-            border-radius: 6px; color: var(--text-primary); font-size: 16px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        .form-group {
+            margin-bottom: 16px;
         }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+            font-size: 0.95em;
+        }
+
+        input[type="text"], textarea, input[type="date"] {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            -webkit-appearance: none;
+        }
+
         textarea {
-            width: 100%; height: 200px; padding: 12px; background: var(--bg-tertiary);
-            border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);
-            font-family: 'Monaco','Menlo','Ubuntu Mono', monospace; font-size: 14px; resize: vertical;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            height: 180px;
+            font-family: 'Monaco','Menlo','Ubuntu Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
         }
-        input:focus, textarea:focus { outline: none; border-color: var(--text-accent); box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1); }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        }
+
         .submit-btn {
-            background: var(--success); color: white; border: none; padding: 12px 24px;
-            border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 500;
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 500;
             transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
-            transform: scale(1);
+            width: 100%;
+            min-height: 56px;
+            touch-action: manipulation;
         }
-        .submit-btn:hover {
-            background: #2ea043;
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
-        }
+
         .submit-btn:active {
             transform: scale(0.98);
+            background: #2ea043;
         }
+
         .markdown-hint {
-            background: var(--bg-tertiary); border-left: 4px solid var(--text-accent);
-            padding: 16px; margin-top: 12px; border-radius: 0 6px 6px 0; font-size: 0.9em;
+            background: var(--bg-tertiary);
+            border-left: 4px solid var(--text-accent);
+            padding: 14px;
+            margin-top: 12px;
+            border-radius: 0 10px 10px 0;
+            font-size: 0.9em;
+        }
+
+        /* ===== МОДАЛЬНОЕ ОКНО ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--modal-overlay);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-container {
+            background: var(--modal-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9) translateY(20px);
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .modal-header {
+            padding: 20px 20px 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: linear-gradient(to right, var(--bg-tertiary), transparent);
+            position: sticky;
+            top: 0;
+            background: var(--modal-bg);
+            z-index: 10;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: var(--text-accent);
+            margin: 0;
+            line-height: 1.3;
+            padding-right: 40px;
+            word-break: break-word;
+        }
+
+        .modal-close {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            touch-action: manipulation;
+        }
+
+        .modal-close:active {
+            transform: scale(0.9);
+            background: var(--text-accent);
+            color: var(--bg-primary);
+        }
+
+        .modal-content {
+            padding: 20px;
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        .modal-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--border);
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+
+        .modal-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .modal-body {
+            font-size: 1em;
+        }
+
+        .modal-body h1 { font-size: 1.8em; margin: 0 0 16px 0; }
+        .modal-body h2 { font-size: 1.4em; margin: 20px 0 10px 0; color: var(--text-accent); }
+        .modal-body h3 { font-size: 1.2em; margin: 16px 0 8px 0; }
+        .modal-body p { margin: 12px 0; }
+        .modal-body ul, .modal-body ol { margin: 12px 0 12px 20px; }
+        .modal-body li { margin: 6px 0; }
+        .modal-body code {
+            background: var(--bg-tertiary);
+            padding: 3px 6px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            border: 1px solid var(--border);
+        }
+        .modal-body pre {
+            background: var(--bg-tertiary);
+            padding: 14px;
+            border-radius: 12px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            margin: 16px 0;
+        }
+        .modal-body pre code {
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        .modal-body blockquote {
+            border-left: 4px solid var(--text-accent);
+            padding: 10px 16px;
+            margin: 16px 0;
+            background: var(--bg-tertiary);
+            border-radius: 0 12px 12px 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .modal-footer {
+            padding: 16px 20px 20px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            position: sticky;
+            bottom: 0;
+            background: var(--modal-bg);
+        }
+
+        .modal-btn {
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            min-height: 52px;
+            touch-action: manipulation;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.97);
+            background: var(--text-accent);
+            color: white;
+        }
+
+        .modal-btn.edit-btn:active {
+            background: #2ea043;
+        }
+
+        .modal-btn.delete-btn {
+            color: #f85149;
+        }
+
+        .modal-btn.delete-btn:active {
+            background: #f85149;
+            color: white;
+        }
+
+        /* Адаптация для маленьких экранов */
+        @media (max-width: 768px) {
+            .filter-panel {
+                max-width: 100%;
+            }
+
+            .nav-button {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 12px; }
+            h1 { font-size: 1.8em; }
+
+            .notes-counter {
+                font-size: 0.8em;
+                padding: 3px 10px;
+                min-width: 35px;
+                height: 28px;
+            }
+
+            .nav-button {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .nav-button.left {
+                margin-right: 8px;
+            }
+
+            .nav-button.right {
+                margin-left: 8px;
+            }
+
+            .slide-card {
+                width: 160px;
+                min-width: 160px;
+            }
+
+            .slide-header {
+                padding: 16px 8px;
+                min-height: 80px;
+            }
+
+            .slide-title {
+                font-size: 1em;
+            }
+
+            .slide-footer {
+                padding: 8px 10px;
+            }
+
+            .slide-actions a, .slide-delete {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 6px;
+            }
+
+            .modal-header {
+                padding: 16px 16px 10px 16px;
+            }
+
+            .modal-title {
+                font-size: 1.3em;
+                padding-right: 35px;
+            }
+
+            .modal-close {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+                top: 8px;
+                right: 8px;
+            }
+
+            .modal-content {
+                padding: 16px;
+            }
+
+            .modal-footer {
+                padding: 12px 16px 16px 16px;
+                flex-direction: column;
+            }
+
+            .modal-btn {
+                width: 100%;
+            }
+
+            .calendar-weekdays {
+                font-size: 0.8em;
+            }
+
+            .calendar-day {
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .slide-card {
+                width: 140px;
+                min-width: 140px;
+            }
+
+            .modal-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .tags-grid {
+                gap: 4px;
+            }
+
+            .tag-item {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+
+            .nav-button {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+        }
+
+        /* Поддержка безопасной зоны на iPhone */
+        @supports (padding: max(0px)) {
+            .modal-overlay {
+                padding-left: max(16px, env(safe-area-inset-left));
+                padding-right: max(16px, env(safe-area-inset-right));
+                padding-top: max(16px, env(safe-area-inset-top));
+                padding-bottom: max(16px, env(safe-area-inset-bottom));
+            }
+
+            .filter-panel {
+                padding-left: max(20px, env(safe-area-inset-left));
+                padding-right: max(20px, env(safe-area-inset-right));
+                padding-top: max(20px, env(safe-area-inset-top));
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📝 Мои заметки</h1>
+    <!-- Оверлей для панели фильтров -->
+    <div class="panel-overlay" id="panelOverlay"></div>
 
-        {% if notes %}
-            <!-- Подсказка для прокрутки -->
-            <div class="scroll-hint">
-                <span>⬅️</span> Плавно листайте колёсиком или тащите мышкой <span>➡️</span>
+    <!-- Выпадающая панель фильтров -->
+    <div class="filter-panel" id="filterPanel">
+        <div class="filter-panel-header">
+            <h3>
+                <span>🔍</span> Фильтры
+            </h3>
+            <div class="close-panel" id="closePanel">✕</div>
+        </div>
+
+        <!-- Поиск (без лупы) -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Поиск по заметкам...">
+        </div>
+
+        <!-- Теги -->
+        <div class="tags-container">
+            <div class="tags-title">
+                <span>🏷️</span> Популярные теги
+            </div>
+            <div class="tags-grid" id="tagsContainer">
+                <div class="tag-item" data-tag="работа">
+                    работа <span class="tag-count">12</span>
+                </div>
+                <div class="tag-item" data-tag="личное">
+                    личное <span class="tag-count">8</span>
+                </div>
+                <div class="tag-item" data-tag="идеи">
+                    идеи <span class="tag-count">5</span>
+                </div>
+                <div class="tag-item" data-tag="todo">
+                    todo <span class="tag-count">15</span>
+                </div>
+                <div class="tag-item" data-tag="важное">
+                    важное <span class="tag-count">3</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Календарь -->
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <div class="calendar-month">
+                    <span>📅</span>
+                    <span id="currentMonth">Март 2026</span>
+                </div>
+                <div class="calendar-nav">
+                    <div class="calendar-nav-btn" id="prevMonth">←</div>
+                    <div class="calendar-nav-btn" id="nextMonth">→</div>
+                </div>
             </div>
 
-            <!-- Контейнер с горизонтальной прокруткой -->
-            <div class="slides-scroll-container" id="scrollContainer">
-                <div class="slides-row">
-                    {% for note in notes %}
-                        <div class="slide-card">
-                            <a href="{% url 'note_detail' note.pk %}" style="text-decoration: none; color: inherit;">
+            <div class="calendar-weekdays">
+                <div>Пн</div>
+                <div>Вт</div>
+                <div>Ср</div>
+                <div>Чт</div>
+                <div>Пт</div>
+                <div>Сб</div>
+                <div>Вс</div>
+            </div>
+
+            <div class="calendar-days" id="calendarDays"></div>
+
+            <div class="calendar-footer">
+                <span id="selectedDateInfo">Выберите дату</span>
+                <div class="clear-filter-btn" id="clearDateFilter">✕ Сбросить</div>
+            </div>
+        </div>
+
+        <!-- Активные фильтры -->
+        <div class="active-filters" id="activeFilters"></div>
+    </div>
+
+    <div class="container">
+        <!-- Заголовок с бургер-меню и счётчиком -->
+        <div class="header-with-menu">
+            <h1>
+                📝 Мои заметки
+                <span class="notes-counter" id="notesCounter">0</span>
+            </h1>
+            <div class="menu-button" id="menuButton">
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+                <div class="menu-line"></div>
+            </div>
+        </div>
+
+        <!-- КОНТЕЙНЕР С ЗАМЕТКАМИ -->
+        {% if notes %}
+            <!-- Слайды с кнопками навигации -->
+            <div class="slides-wrapper">
+                <div class="nav-button left" id="scrollLeft" title="Листать влево">←</div>
+                <div class="slides-scroll-container" id="scrollContainer">
+                    <div class="slides-row" id="slidesRow">
+                        {% for note in notes %}
+                            <div class="slide-card"
+                                 data-note-id="{{ note.pk }}"
+                                 data-note-title="{{ note.title }}"
+                                 data-note-content="{{ note.content|escape }}"
+                                 data-note-date="{{ note.created_at|date:'d.m.Y H:i' }}"
+                                 data-note-date-raw="{{ note.created_at|date:'Y-m-d' }}"
+                                 data-note-tags="работа,идеи">
                                 <div class="slide-header">
                                     <div class="slide-title">{{ note.title }}</div>
                                 </div>
-                            </a>
-                            <div class="slide-footer">
-                                <div class="slide-actions">
-                                    <a href="{% url 'note_edit' note.pk %}" title="Редактировать">✏️</a>
+                                <div class="slide-tags">
+                                    <span class="slide-tag">работа</span>
+                                    <span class="slide-tag">идеи</span>
                                 </div>
-                                <a href="{% url 'note_delete' note.pk %}"
-                                   onclick="return confirm('🚨 Удалить «{{ note.title|escape }}» навсегда?');"
-                                   class="slide-delete"
-                                   title="Удалить">🗑️</a>
+                                <div class="slide-footer">
+                                    <div class="slide-actions">
+                                        <a href="{% url 'note_edit' note.pk %}" title="Редактировать" onclick="event.stopPropagation()">✏️</a>
+                                    </div>
+                                    <form method="post" action="{% url 'note_delete' note.pk %}" style="display: inline;" onsubmit="event.stopPropagation(); return confirm('🚨 Удалить «{{ note.title|escape }}» навсегда?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="slide-delete" title="Удалить">🗑️</button>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
+                <div class="nav-button right" id="scrollRight" title="Листать вправо">→</div>
             </div>
         {% else %}
             <div class="empty-state">
@@ -321,34 +1330,70 @@ print('Hello!')
         </div>
     </div>
 
+    <!-- Модальное окно для просмотра заметки -->
+    <div class="modal-overlay" id="noteModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Заголовок заметки</h2>
+                <div class="modal-close" id="closeModal">×</div>
+            </div>
+            <div class="modal-content">
+                <div class="modal-meta">
+                    <span class="modal-meta-item">📅 <span id="modalDate">дата</span></span>
+                    <span class="modal-meta-item">🏷️ <span id="modalTags">теги</span></span>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    Содержимое заметки будет здесь...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="modalEditBtn" class="modal-btn edit-btn">✏️ Редактировать</a>
+                <a href="#" id="modalDeleteBtn" class="modal-btn delete-btn" onclick="return confirm('Удалить заметку?')">🗑️ Удалить</a>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Супер-плавная горизонтальная прокрутка колёсиком мыши
+        // ===== ОБНОВЛЕНИЕ СЧЁТЧИКА =====
+        function updateNotesCounter() {
+            const counter = document.getElementById('notesCounter');
+            if (!counter) return;
+
+            const visibleCards = document.querySelectorAll('.slide-card:not(.hidden)');
+            const totalCards = document.querySelectorAll('.slide-card').length;
+
+            if (visibleCards.length === totalCards) {
+                counter.textContent = totalCards;
+                counter.style.background = 'var(--counter-bg)';
+            } else {
+                counter.textContent = `${visibleCards.length}/${totalCards}`;
+                counter.style.background = '#f85149';
+            }
+        }
+
+        // ===== ПЛАВНАЯ ПРОКРУТКА И КНОПКИ НАВИГАЦИИ =====
         (function() {
             const container = document.getElementById('scrollContainer');
+            const leftBtn = document.getElementById('scrollLeft');
+            const rightBtn = document.getElementById('scrollRight');
+
             if (!container) return;
 
-            // Настройки анимации
             const scrollSettings = {
-                smoothness: 0.15,      // Коэффициент плавности (меньше = плавнее)
-                threshold: 0.5,         // Порог для начала анимации
-                minDelta: 0.5,          // Минимальное изменение для анимации
-                wheelSpeed: 1.2         // Скорость прокрутки колесом
+                smoothness: 0.15,
+                minDelta: 0.5,
+                wheelSpeed: 1.2
             };
 
-            // Переменные для плавной прокрутки
             let targetScrollLeft = container.scrollLeft;
             let currentScrollLeft = container.scrollLeft;
             let isAnimating = false;
-            let wheelDelta = 0;
 
-            // Функция плавной анимации
             function smoothScroll() {
                 if (!isAnimating) return;
 
-                // Вычисляем разницу между текущей и целевой позицией
                 const diff = targetScrollLeft - currentScrollLeft;
 
-                // Если разница очень маленькая, просто устанавливаем целевую позицию
                 if (Math.abs(diff) < scrollSettings.minDelta) {
                     currentScrollLeft = targetScrollLeft;
                     container.scrollLeft = targetScrollLeft;
@@ -356,29 +1401,48 @@ print('Hello!')
                     return;
                 }
 
-                // Плавно приближаемся к целевой позиции
                 currentScrollLeft += diff * scrollSettings.smoothness;
                 container.scrollLeft = currentScrollLeft;
 
-                // Продолжаем анимацию
                 requestAnimationFrame(smoothScroll);
+            }
+
+            // Функция для прокрутки влево/вправо
+            function scrollByAmount(amount) {
+                targetScrollLeft += amount;
+
+                const maxScroll = container.scrollWidth - container.clientWidth;
+                targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+
+                if (!isAnimating) {
+                    isAnimating = true;
+                    currentScrollLeft = container.scrollLeft;
+                    requestAnimationFrame(smoothScroll);
+                }
+            }
+
+            // Обработчики для кнопок
+            if (leftBtn) {
+                leftBtn.addEventListener('click', () => {
+                    scrollByAmount(-300); // Прокрутка влево на 300px
+                });
+            }
+
+            if (rightBtn) {
+                rightBtn.addEventListener('click', () => {
+                    scrollByAmount(300); // Прокрутка вправо на 300px
+                });
             }
 
             // Обработчик колесика мыши
             container.addEventListener('wheel', function(e) {
                 e.preventDefault();
-
-                // Получаем направление прокрутки (отрицательное = вверх/влево, положительное = вниз/вправо)
                 const delta = e.deltaY || e.deltaX;
-
-                // Изменяем целевую позицию прокрутки
                 targetScrollLeft += delta * scrollSettings.wheelSpeed;
 
-                // Ограничиваем целевую позицию в пределах допустимых значений
                 const maxScroll = container.scrollWidth - container.clientWidth;
                 targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
 
-                // Запускаем анимацию, если она еще не запущена
                 if (!isAnimating) {
                     isAnimating = true;
                     currentScrollLeft = container.scrollLeft;
@@ -386,73 +1450,69 @@ print('Hello!')
                 }
             }, { passive: false });
 
-            // Перетаскивание мышкой с плавностью
+            // Перетаскивание мышкой и тачем
             let isDown = false;
             let startX;
             let startScrollLeft;
-            let dragTargetScrollLeft = 0;
             let isDragging = false;
 
-            container.addEventListener('mousedown', (e) => {
+            container.addEventListener('mousedown', startDrag);
+            container.addEventListener('mousemove', drag);
+            container.addEventListener('mouseup', endDrag);
+            container.addEventListener('mouseleave', endDrag);
+
+            container.addEventListener('touchstart', startDrag, { passive: false });
+            container.addEventListener('touchmove', drag, { passive: false });
+            container.addEventListener('touchend', endDrag);
+            container.addEventListener('touchcancel', endDrag);
+
+            function startDrag(e) {
                 isDown = true;
                 isDragging = false;
                 container.style.cursor = 'grabbing';
-                startX = e.pageX - container.offsetLeft;
+
+                const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+                startX = clientX - container.offsetLeft;
                 startScrollLeft = container.scrollLeft;
-                dragTargetScrollLeft = container.scrollLeft;
 
-                // Останавливаем текущую анимацию при начале перетаскивания
                 isAnimating = false;
-            });
 
-            container.addEventListener('mousemove', (e) => {
+                if (e.type.startsWith('touch')) {
+                    e.preventDefault();
+                }
+            }
+
+            function drag(e) {
                 if (!isDown) return;
                 e.preventDefault();
 
-                const x = e.pageX - container.offsetLeft;
+                const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+                const x = clientX - container.offsetLeft;
                 const walk = (x - startX) * 1.5;
-                dragTargetScrollLeft = startScrollLeft - walk;
+                const newScrollLeft = startScrollLeft - walk;
 
-                // Ограничиваем целевую позицию
                 const maxScroll = container.scrollWidth - container.clientWidth;
-                dragTargetScrollLeft = Math.max(0, Math.min(dragTargetScrollLeft, maxScroll));
+                container.scrollLeft = Math.max(0, Math.min(newScrollLeft, maxScroll));
 
-                // Мгновенно обновляем прокрутку для отзывчивости при перетаскивании
-                container.scrollLeft = dragTargetScrollLeft;
-
-                // Обновляем переменные для плавной прокрутки
-                targetScrollLeft = dragTargetScrollLeft;
-                currentScrollLeft = dragTargetScrollLeft;
+                targetScrollLeft = container.scrollLeft;
+                currentScrollLeft = container.scrollLeft;
 
                 isDragging = true;
-            });
+            }
 
-            // Обработчики окончания перетаскивания
-            ['mouseup', 'mouseleave'].forEach(event => {
-                container.addEventListener(event, () => {
-                    if (isDown) {
-                        isDown = false;
-                        container.style.cursor = 'grab';
+            function endDrag(e) {
+                if (isDown) {
+                    isDown = false;
+                    container.style.cursor = 'grab';
 
-                        // Если это было перетаскивание, оставляем прокрутку где есть
-                        if (isDragging) {
-                            targetScrollLeft = container.scrollLeft;
-                            currentScrollLeft = container.scrollLeft;
-                        }
-                        isDragging = false;
+                    if (isDragging) {
+                        targetScrollLeft = container.scrollLeft;
+                        currentScrollLeft = container.scrollLeft;
                     }
-                });
-            });
+                    isDragging = false;
+                }
+            }
 
-            // Обновляем targetScrollLeft при изменении размера окна
-            window.addEventListener('resize', () => {
-                const maxScroll = container.scrollWidth - container.clientWidth;
-                targetScrollLeft = Math.min(targetScrollLeft, maxScroll);
-                container.scrollLeft = targetScrollLeft;
-                currentScrollLeft = targetScrollLeft;
-            });
-
-            // Опционально: добавляем плавный скролл кнопками (влево/вправо)
             container.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                     e.preventDefault();
@@ -470,10 +1530,444 @@ print('Hello!')
                 }
             });
 
-            // Фокус на контейнер для клавиатурной навигации
             container.setAttribute('tabindex', '0');
             container.style.outline = 'none';
+
+            // Обновление видимости кнопок при прокрутке
+            function updateButtonsVisibility() {
+                if (!leftBtn || !rightBtn) return;
+
+                const maxScroll = container.scrollWidth - container.clientWidth;
+
+                // Показываем/скрываем левую кнопку
+                if (container.scrollLeft <= 5) {
+                    leftBtn.style.opacity = '0.5';
+                    leftBtn.style.pointerEvents = 'none';
+                } else {
+                    leftBtn.style.opacity = '1';
+                    leftBtn.style.pointerEvents = 'auto';
+                }
+
+                // Показываем/скрываем правую кнопку
+                if (container.scrollLeft >= maxScroll - 5) {
+                    rightBtn.style.opacity = '0.5';
+                    rightBtn.style.pointerEvents = 'none';
+                } else {
+                    rightBtn.style.opacity = '1';
+                    rightBtn.style.pointerEvents = 'auto';
+                }
+            }
+
+            container.addEventListener('scroll', updateButtonsVisibility);
+            setTimeout(updateButtonsVisibility, 100);
         })();
+
+        // ===== УПРАВЛЕНИЕ ПАНЕЛЬЮ ФИЛЬТРОВ =====
+        (function() {
+            const menuButton = document.getElementById('menuButton');
+            const filterPanel = document.getElementById('filterPanel');
+            const panelOverlay = document.getElementById('panelOverlay');
+            const closePanel = document.getElementById('closePanel');
+
+            function openPanel() {
+                filterPanel.classList.add('open');
+                panelOverlay.classList.add('visible');
+                menuButton.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closePanelFunc() {
+                filterPanel.classList.remove('open');
+                panelOverlay.classList.remove('visible');
+                menuButton.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            menuButton.addEventListener('click', openPanel);
+            closePanel.addEventListener('click', closePanelFunc);
+            panelOverlay.addEventListener('click', closePanelFunc);
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && filterPanel.classList.contains('open')) {
+                    closePanelFunc();
+                }
+            });
+        })();
+
+        // ===== ФИЛЬТРЫ И СОРТИРОВКА =====
+        (function() {
+            const searchInput = document.getElementById('searchInput');
+            const calendarDays = document.getElementById('calendarDays');
+            const currentMonthSpan = document.getElementById('currentMonth');
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            const selectedDateInfo = document.getElementById('selectedDateInfo');
+            const clearDateFilter = document.getElementById('clearDateFilter');
+            const activeFilters = document.getElementById('activeFilters');
+            const slidesRow = document.getElementById('slidesRow');
+
+            let currentDate = new Date();
+            let selectedDate = null;
+            let selectedTag = null;
+            let searchQuery = '';
+
+            const noteCards = document.querySelectorAll('.slide-card');
+
+            const notesByDate = {};
+            noteCards.forEach(card => {
+                const dateRaw = card.dataset.noteDateRaw;
+                if (dateRaw) {
+                    if (!notesByDate[dateRaw]) {
+                        notesByDate[dateRaw] = [];
+                    }
+                    notesByDate[dateRaw].push(card);
+                }
+            });
+
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                applyFilters();
+                updateActiveFilters();
+            });
+
+            document.querySelectorAll('.tag-item').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    const tagValue = tag.dataset.tag;
+
+                    if (selectedTag === tagValue) {
+                        selectedTag = null;
+                        tag.classList.remove('active');
+                    } else {
+                        document.querySelectorAll('.tag-item').forEach(t => t.classList.remove('active'));
+                        selectedTag = tagValue;
+                        tag.classList.add('active');
+                    }
+
+                    applyFilters();
+                    updateActiveFilters();
+                });
+            });
+
+            function renderCalendar() {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+
+                const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                currentMonthSpan.textContent = `${monthNames[month]} ${year}`;
+
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+
+                let startDay = firstDay.getDay();
+                startDay = startDay === 0 ? 6 : startDay - 1;
+
+                const daysInMonth = lastDay.getDate();
+
+                let html = '';
+
+                for (let i = 0; i < startDay; i++) {
+                    html += '<div class="calendar-day empty"></div>';
+                }
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const hasNotes = notesByDate[dateStr] && notesByDate[dateStr].length > 0;
+                    const isSelected = selectedDate === dateStr;
+
+                    html += `<div class="calendar-day ${hasNotes ? 'has-notes' : ''} ${isSelected ? 'active' : ''}" data-date="${dateStr}">${d}</div>`;
+                }
+
+                calendarDays.innerHTML = html;
+
+                document.querySelectorAll('.calendar-day[data-date]').forEach(day => {
+                    day.addEventListener('click', () => {
+                        const date = day.dataset.date;
+
+                        if (selectedDate === date) {
+                            selectedDate = null;
+                            day.classList.remove('active');
+                        } else {
+                            document.querySelectorAll('.calendar-day.active').forEach(d => d.classList.remove('active'));
+                            selectedDate = date;
+                            day.classList.add('active');
+                        }
+
+                        if (selectedDate) {
+                            const [y, m, d] = selectedDate.split('-');
+                            selectedDateInfo.textContent = `Выбрано: ${d}.${m}.${y}`;
+                        } else {
+                            selectedDateInfo.textContent = 'Выберите дату';
+                        }
+
+                        applyFilters();
+                        updateActiveFilters();
+                    });
+                });
+            }
+
+            prevMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            clearDateFilter.addEventListener('click', () => {
+                selectedDate = null;
+                document.querySelectorAll('.calendar-day.active').forEach(d => d.classList.remove('active'));
+                selectedDateInfo.textContent = 'Выберите дату';
+                applyFilters();
+                updateActiveFilters();
+            });
+
+            function applyFilters() {
+                noteCards.forEach(card => {
+                    let show = true;
+
+                    if (searchQuery) {
+                        const title = card.dataset.noteTitle.toLowerCase();
+                        if (!title.includes(searchQuery)) {
+                            show = false;
+                        }
+                    }
+
+                    if (show && selectedTag) {
+                        const tags = card.dataset.noteTags || '';
+                        if (!tags.includes(selectedTag)) {
+                            show = false;
+                        }
+                    }
+
+                    if (show && selectedDate) {
+                        const noteDate = card.dataset.noteDateRaw;
+                        if (noteDate !== selectedDate) {
+                            show = false;
+                        }
+                    }
+
+                    if (show) {
+                        card.classList.remove('hidden');
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+
+                updateNotesCounter();
+
+                const visibleCards = document.querySelectorAll('.slide-card:not(.hidden)');
+                const emptyFilters = document.querySelector('.empty-filters');
+
+                if (visibleCards.length === 0) {
+                    if (!emptyFilters) {
+                        const emptyDiv = document.createElement('div');
+                        emptyDiv.className = 'empty-state empty-filters';
+                        emptyDiv.innerHTML = `
+                            <h3>😕 Ничего не найдено</h3>
+                            <p>Попробуйте изменить параметры фильтрации</p>
+                            <button onclick="clearAllFilters()">Сбросить все фильтры</button>
+                        `;
+                        slidesRow.parentElement.appendChild(emptyDiv);
+                    }
+                } else {
+                    if (emptyFilters) {
+                        emptyFilters.remove();
+                    }
+                }
+            }
+
+            function updateActiveFilters() {
+                let html = '';
+
+                if (searchQuery) {
+                    html += `<div class="filter-badge">
+                        Поиск: "${searchQuery}"
+                        <span class="filter-badge-remove" onclick="clearSearch()">✕</span>
+                    </div>`;
+                }
+
+                if (selectedTag) {
+                    html += `<div class="filter-badge">
+                        Тег: ${selectedTag}
+                        <span class="filter-badge-remove" onclick="clearTag()">✕</span>
+                    </div>`;
+                }
+
+                if (selectedDate) {
+                    const [y, m, d] = selectedDate.split('-');
+                    html += `<div class="filter-badge">
+                        Дата: ${d}.${m}.${y}
+                        <span class="filter-badge-remove" onclick="clearDate()">✕</span>
+                    </div>`;
+                }
+
+                activeFilters.innerHTML = html;
+            }
+
+            window.clearSearch = function() {
+                searchQuery = '';
+                searchInput.value = '';
+                applyFilters();
+                updateActiveFilters();
+            };
+
+            window.clearTag = function() {
+                selectedTag = null;
+                document.querySelectorAll('.tag-item').forEach(t => t.classList.remove('active'));
+                applyFilters();
+                updateActiveFilters();
+            };
+
+            window.clearDate = function() {
+                selectedDate = null;
+                document.querySelectorAll('.calendar-day.active').forEach(d => d.classList.remove('active'));
+                selectedDateInfo.textContent = 'Выберите дату';
+                applyFilters();
+                updateActiveFilters();
+            };
+
+            window.clearAllFilters = function() {
+                clearSearch();
+                clearTag();
+                clearDate();
+            };
+
+            renderCalendar();
+            updateNotesCounter();
+        })();
+
+        // ===== МОДАЛЬНОЕ ОКНО =====
+        const modal = document.getElementById('noteModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDate = document.getElementById('modalDate');
+        const modalTags = document.getElementById('modalTags');
+        const modalBody = document.getElementById('modalBody');
+        const modalEditBtn = document.getElementById('modalEditBtn');
+        const modalDeleteBtn = document.getElementById('modalDeleteBtn');
+        const closeModal = document.getElementById('closeModal');
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function markdownToHtml(markdown) {
+            if (!markdown) return '';
+
+            let html = escapeHtml(markdown);
+
+            html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            html = html.replace(/\_\_(.*?)\_\_/g, '<strong>$1</strong>');
+            html = html.replace(/\_(.*?)\_/g, '<em>$1</em>');
+
+            html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>');
+
+            html = html.replace(/^\* (.*$)/gm, '<li>$1</li>');
+            html = html.replace(/^- (.*$)/gm, '<li>$1</li>');
+
+            let lines = html.split('\n');
+            let inList = false;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].startsWith('<li>')) {
+                    if (!inList) {
+                        lines[i] = '<ul>' + lines[i];
+                        inList = true;
+                    }
+                } else if (inList) {
+                    lines[i-1] = lines[i-1] + '</ul>';
+                    inList = false;
+                }
+            }
+            if (inList) {
+                lines[lines.length-1] = lines[lines.length-1] + '</ul>';
+            }
+            html = lines.join('\n');
+
+            html = html.replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>');
+
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = html.replace(/\n/g, '<br>');
+
+            return '<p>' + html + '</p>';
+        }
+
+        function openModal(noteId, title, content, date, tags) {
+            modalTitle.textContent = title;
+            modalDate.textContent = date;
+            modalTags.textContent = tags || 'без тегов';
+            modalBody.innerHTML = markdownToHtml(content);
+
+            modalEditBtn.href = `/note/${noteId}/edit/`;
+            modalDeleteBtn.href = `/note/${noteId}/delete/`;
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModalFunc() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('.slide-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.slide-actions a') || e.target.closest('.slide-delete')) {
+                    return;
+                }
+
+                const noteId = card.dataset.noteId;
+                const title = card.dataset.noteTitle;
+                const content = card.dataset.noteContent;
+                const date = card.dataset.noteDate;
+                const tags = card.dataset.noteTags || '';
+
+                openModal(noteId, title, content, date, tags);
+            });
+
+            card.addEventListener('touchstart', () => {}, { passive: true });
+        });
+
+        closeModal.addEventListener('click', closeModalFunc);
+        closeModal.addEventListener('touchstart', closeModalFunc, { passive: true });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModalFunc();
+            }
+        });
+
+        modal.addEventListener('touchstart', (e) => {
+            if (e.target === modal) {
+                closeModalFunc();
+            }
+        }, { passive: true });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeModalFunc();
+            }
+        });
+
+        document.querySelector('.modal-container').addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        document.querySelector('.modal-container').addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
     </script>
 </body>
 </html>
